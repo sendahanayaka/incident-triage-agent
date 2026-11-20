@@ -1,0 +1,23 @@
+{
+  "environment": "staging",
+  "services": {
+    "auth-service": {
+      "version": "1.8.4",
+      "deployment_id": "auth-087",
+      "owner": "identity-oncall",
+      "smoke_test": "fresh-token-validation"
+    },
+    "payments-api": {
+      "version": "2.4.2",
+      "deployment_id": "pay-204",
+      "owner": "payments-oncall",
+      "smoke_test": "checkout-authorization"
+    },
+    "notification-worker": {
+      "version": "3.1.2",
+      "deployment_id": "notify-116",
+      "owner": "messaging-oncall",
+      "smoke_test": "notification-delivery"
+    }
+  }
+}

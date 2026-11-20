@@ -1,0 +1,42 @@
+[
+  {
+    "deployment_id": "auth-087",
+    "service_name": "auth-service",
+    "version": "1.8.4",
+    "commit_hash": "e7605b2c8fe640bd948a1a363f6cd13ae77b4512",
+    "timestamp": "2026-11-20T03:08:00Z",
+    "status": "deployed",
+    "rollback_status": "not_requested",
+    "summary": "Refreshed the staging signing-key cache."
+  },
+  {
+    "deployment_id": "notify-116",
+    "service_name": "notification-worker",
+    "version": "3.1.2",
+    "commit_hash": "08fdb387794d1699dde54f0cfef32eb5af063ac7",
+    "timestamp": "2026-11-20T03:15:00Z",
+    "status": "deployed",
+    "rollback_status": "not_requested",
+    "summary": "Updated the transient delivery retry delay."
+  },
+  {
+    "deployment_id": "pay-203",
+    "service_name": "payments-api",
+    "version": "2.4.1",
+    "commit_hash": "b8236ef8307e5685b18c08bb55d2af007c73d116",
+    "timestamp": "2026-11-20T03:20:00Z",
+    "status": "deployed",
+    "rollback_status": "not_requested",
+    "summary": "Known-good staging baseline with a 1000 ms gateway timeout."
+  },
+  {
+    "deployment_id": "pay-204",
+    "service_name": "payments-api",
+    "version": "2.4.2",
+    "commit_hash": "70e948348fb1b4b936001a451e7b10fa1f41af2c",
+    "timestamp": "2026-11-20T04:04:00Z",
+    "status": "deployed",
+    "rollback_status": "not_requested",
+    "summary": "Lowered the staging gateway timeout from 1000 ms to 250 ms."
+  }
+]

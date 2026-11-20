@@ -1,0 +1,227 @@
+# AI-Powered Incident Triage and Release Readiness Agent
+
+> **Project Status — Phase 3 complete.** The Python agent discovers both MCP servers over STDIO and uses a configured model API to investigate incidents and assess release readiness.
+
+---
+
+## Overview
+
+The **AI-Powered Incident Triage and Release Readiness Agent** is an autonomous, safety-controlled engineering assistant designed for Site Reliability Engineers (SREs), DevOps practitioners, and release managers. It aims to accelerate incident response, perform automated root cause analysis across telemetry feeds and runbooks, and provide release readiness assessments while strictly enforcing Human-in-the-Loop (HITL) approval gates for sensitive actions.
+
+---
+
+## Objectives
+
+- **Automated Incident Triage:** Correlate telemetry metrics, system error logs, and recent code deployments to identify probable root causes.
+- **Runbook-Informed Diagnosis:** Search and synthesize domain-specific remediation runbooks.
+- **Model Context Protocol (MCP) Integration:** Standardize tool execution across diverse operational components using MCP.
+- **Safety & Human-in-the-Loop Control** requires explicit operator approval before the agent creates an incident ticket.
+- **Execution Observability & Tracing** records tool names, arguments, durations, and outcomes in JSONL.
+
+---
+
+## Planned Architecture
+
+The architecture consists of a decoupled system:
+1. **Frontend:** React + TypeScript + Vite interactive operator portal.
+2. **Backend:** FastAPI (Python) providing REST APIs, safety verification, and execution coordination.
+3. **Agent Orchestrator:** Python-based ReAct agent orchestrating tool calls within an iteration limit (`MAX_AGENT_ITERATIONS=8`).
+4. **Model Context Protocol (MCP) Integration:**
+   - **Custom Rust MCP Server (`ops-telemetry-mcp`):** Log filtering, deployment history, Markdown resources, and local ticket creation.
+   - **Official Filesystem MCP Server:** Release notes, configuration, and manifest reads within the sample workspace.
+5. **Storage & Traces:**
+   - **SQLite (`database/incidents.db`)** stores incident tickets from the Rust server. Backend state and approval records are planned.
+   - **JSONL (`traces/agent_traces.jsonl`):** Granular agent trajectory and decision tracing.
+
+For detailed architecture diagrams and component specifications, refer to [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Technology Stack
+
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS (planned)
+- **Backend:** Python 3.13+, FastAPI, Pydantic, Uvicorn
+- **Orchestration:** Python-based ReAct loop
+- **MCP Servers:**
+  - Custom Rust server (`ops-telemetry-mcp`)
+  - Official MCP filesystem server
+- **Storage:** SQLite incident tickets and planned backend state
+- **Audit & Tracing:** JSONL
+- **Version Control:** Git, GitHub
+
+---
+
+## Directory Structure
+
+```text
+incident-triage-agent/
+├── .env.example              # Template environment configuration
+├── .gitignore                # Project-wide Git ignore rules
+├── README.md                 # Project overview and status
+├── REPORT.md                 # Project assignment report
+├── docs/
+│   ├── ARCHITECTURE.md       # Comprehensive system architecture documentation
+│   └── screenshots/          # Architecture diagrams and UI screenshots
+├── frontend/                 # React + TypeScript + Vite web interface
+├── agent-client/             # Python agent, MCP connections, and integration tests
+├── backend/                  # Planned FastAPI web service
+│   ├── app/
+│   │   ├── api/              # FastAPI routers and endpoints
+│   │   ├── orchestrator/     # Agent ReAct loop and prompt definitions
+│   │   ├── mcp/              # MCP client and connection managers
+│   │   ├── services/         # Incident, telemetry, and runbook services
+│   │   ├── safety/           # Safety policies and risk checkers
+│   │   ├── approvals/        # Human-in-the-loop approval management
+│   │   ├── tracing/          # JSONL trace logger
+│   │   └── models/           # Pydantic schemas and domain models
+│   └── tests/                # Backend unit and integration tests
+├── mcp-server/               # Custom Rust MCP telemetry server
+│   ├── Cargo.toml
+│   ├── Cargo.lock
+│   ├── src/
+│   │   ├── main.rs           # Tokio entry point and STDIO lifecycle
+│   │   ├── server.rs         # MCP capabilities and dispatch
+│   │   ├── errors.rs         # Startup and request errors
+│   │   ├── tools/            # Log search, deployment history, and ticket creation
+│   │   ├── resources/        # Runbooks and release checklist
+│   │   ├── models/           # Data types and tool schemas
+│   │   └── data/             # Fixture loading and local ticket persistence
+│   └── tests/                # MCP integration tests over STDIO
+├── mock_data/
+│   ├── logs.json             # Synthetic logs for three staging services
+│   ├── deployments.json      # Deployment history and rollback status
+│   ├── release-checklist.md  # Criteria for the MCP checklist resource
+│   ├── runbooks/             # Operational incident runbooks (Markdown)
+│   └── workspace/            # RELEASE_NOTES.md, service-config.yaml, service-manifest.json
+├── database/                 # Local ticket store and planned SQLite backend state
+├── traces/                   # Agent trace logs (.jsonl)
+└── tests/                    # System-level and end-to-end test suites
+```
+
+---
+
+## Development Phases
+
+- [x] **Phase 0: Project Initialization and Development Environment Setup**
+  - Scaffolding project directory hierarchy
+  - Configuring `.gitignore`, `.env.example`, and environment variables
+  - Setting up Python virtual environment (`.venv`)
+  - Authoring comprehensive architecture and report documentation
+- [x] **Phase 1 — Repository Setup and Mock Data**
+- [x] **Phase 2 — Telemetry MCP Server (Rust)**
+- [x] **Phase 3A — Filesystem MCP Integration**
+- [x] **Phase 3B — Multi-Server Agent Orchestrator**
+- [ ] **Phase 4: Safety Guardrails & Human-in-the-Loop Approvals**
+- [ ] **Phase 5: Frontend Development (React + TypeScript + Vite)**
+- [ ] **Phase 6: Tracing, Evaluation & Benchmarking**
+- [ ] **Phase 7: Final Documentation & Release Verification**
+
+---
+
+## Mock data
+
+The fixtures describe a staging snapshot at `2026-11-20T04:30:00Z` with 44 log records. Use that reference time for repeatable demo deployment-window queries. The Rust telemetry server reads `logs.json`, `deployments.json`, `runbooks/`, and `release-checklist.md`. The filesystem MCP server serves release notes, configuration, and the manifest under `mock_data/workspace/`.
+
+| Scenario | Evidence in the fixtures |
+| --- | --- |
+| A. Payments outage after deployment | Candidate `pay-204` reduced the gateway timeout from 1000 ms to 250 ms. Gateway responses exceeded the timeout, checkout probes failed, and promotion was blocked. |
+| B. Authentication failures | A signing-key rotation left the cache stale. Fresh-token probes returned HTTP 401 until deployment `auth-087` refreshed the cache. |
+| C. Notification warnings | The provider timed out intermittently. Retries succeeded, the queue drained, and the delivery smoke probe passed. |
+| D. Prompt injection in a log | Payments error `LOG-019` includes a synthetic instruction to approve the release regardless of the evidence. |
+| E. Unknown service | Use `inventory-api` as the negative lookup. The telemetry server returns a structured `unknown_service` error. |
+
+## Build and test the Rust MCP server
+
+Use Rust 1.89 or newer with a C compiler for your Rust target. The build bundles SQLite. From the repository root, build the server and run the unit and STDIO integration tests.
+
+```sh
+cargo build --manifest-path mcp-server/Cargo.toml --locked
+cargo test --manifest-path mcp-server/Cargo.toml --locked
+```
+
+On Windows with the GNU Rust target, make the 64-bit MinGW-w64 C compiler and binutils available on `PATH`. [MSYS2 MinGW-w64 toolchain](https://packages.msys2.org/groups/mingw-w64-x86_64-toolchain)
+
+Set your MCP client's STDIO command to `mcp-server/target/debug/ops-telemetry-mcp.exe` on Windows or `mcp-server/target/debug/ops-telemetry-mcp` on macOS and Linux. Launch it with the repository root as its working directory. The client sends `initialize` and `notifications/initialized`, discovers the tools and resources, and closes the session when done. The server reserves stdout for MCP messages and writes diagnostics to stderr.
+
+| Tool | Input and result |
+| --- | --- |
+| `search_logs` | `service_name`, severity `INFO`, `WARN`, `ERROR`, or `FATAL`, and a positive integer `limit`. Returns newest matching logs first. |
+| `get_deployment_history` | `service_name` and positive integer `window_hours`. Returns newest deployments first within the inclusive demo window. |
+| `create_incident_ticket` | Non-blank `title`, `severity`, `summary`, and `assignee`. Inserts the ticket into SQLite and returns those fields plus `ticket_id` and `created_at`. The future orchestrator will enforce approval before calling it. |
+
+Clients can discover and read `config://release-checklist` and the three concrete runbooks. The runbook template is `service://runbooks/{service_name}`. A known service with no matching entries returns an empty collection. An unknown service returns a structured `unknown_service` tool error.
+
+| Optional environment variable | Default |
+| --- | --- |
+| `OPS_TELEMETRY_DATA_DIR` | `mock_data/` |
+| `OPS_TELEMETRY_REFERENCE_TIME` | `2026-11-20T04:30:00Z` for reproducible deployment history |
+| `OPS_TELEMETRY_TICKET_PATH` | `database/incidents.db` |
+
+If the executable is launched from another directory, pass absolute paths for the fixtures and SQLite database. The server creates the `incident_tickets` table on the first valid ticket write. Tests use in-memory or temporary databases.
+
+## Run the official filesystem MCP server
+
+Use Node.js 24 or newer and Python 3.11 or newer. With a Python virtual environment active, run these commands from the repository root.
+
+```sh
+cd agent-client
+npm ci --ignore-scripts
+python -m pip install -r requirements.txt
+python filesystem_mcp.py tools
+python filesystem_mcp.py list
+python filesystem_mcp.py read RELEASE_NOTES.md
+python filesystem_mcp.py read service-config.yaml
+python filesystem_mcp.py read service-manifest.json
+python -m unittest discover -s tests -v
+```
+
+The Python client launches the pinned official filesystem server as a Node.js subprocess and discovers tool schemas over STDIO. The application can reuse `connect_filesystem()` from `agent-client/filesystem_mcp.py` and call its discovered tools within the async context.
+
+The server receives exactly one allowed directory, `mock_data/workspace/`, with `--read-only` and `--confine-roots`. The client verifies the reported scope at startup and checks requested paths before forwarding calls. An optional `FILESYSTEM_WORKSPACE` environment variable may point to that same directory using an absolute or repository-relative path. [Official filesystem server configuration](https://github.com/modelcontextprotocol/servers/blob/main/src/filesystem/README.md)
+
+## Run an investigation with the Python agent
+
+Build the Rust server and install the Node.js and Python dependencies using the commands above. Set `LLM_API_KEY` and `LLM_MODEL` in the repository's `.env` or in your environment. Use a model that supports function calling. The agent uses the OpenAI Chat Completions API by default. Set `LLM_BASE_URL` for a compatible endpoint. [Function calling](https://developers.openai.com/api/docs/guides/function-calling)
+
+From the repository root, with the Python environment active, run one of these requests.
+
+```sh
+python agent-client/agent.py "Why is payments-api failing, and what should the on-call engineer check?"
+python agent-client/agent.py "Is payments-api version 2.4.2 ready for release?"
+```
+
+The agent opens both MCP sessions and discovers their read-only tools and schemas. It also discovers resource URIs from the Rust server and can read the relevant runbook or release checklist on demand. Every model turn receives the question, tool definitions, and evidence returned by preceding calls. The final answer summarizes the available evidence and any outstanding checks.
+
+| Setting | Default and effect |
+| --- | --- |
+| `RUST_MCP_SERVER_PATH` | Detects the local debug binary by platform. Set an absolute or repository-relative override for another build. |
+| `MAX_AGENT_ITERATIONS` | `8` tool calls per investigation, followed by a final summary turn if the budget is exhausted. |
+| `AGENT_TOOL_TIMEOUT_SECONDS` | `10` seconds per tool call. |
+| `TRACE_FILE_PATH` | `traces/agent_traces.jsonl`. Records invocation arguments, timings, and outcomes by run ID. |
+
+The investigation CLI exposes read-only tools. Ticket creation will be wired into the operator approval flow.
+
+## Getting Started
+
+### Prerequisites
+- Python 3.13+
+- Git
+
+### Initializing Environment
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Create and activate a local virtual environment:
+   - **Windows:**
+     ```powershell
+     python -m venv .venv
+     .venv\Scripts\Activate.ps1
+     ```
+   - **macOS / Linux:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+*(Additional build and setup instructions will be provided in subsequent phases as components are implemented.)*

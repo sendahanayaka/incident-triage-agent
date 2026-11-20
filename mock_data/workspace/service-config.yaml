@@ -1,0 +1,15 @@
+environment: staging
+services:
+  auth-service:
+    candidate_version: "1.8.4"
+    rollback_version: "1.8.3"
+    signing_key_cache_ttl_seconds: 300
+  payments-api:
+    candidate_version: "2.4.2"
+    rollback_version: "2.4.1"
+    gateway_timeout_ms: 250
+    minimum_gateway_timeout_ms: 500
+  notification-worker:
+    candidate_version: "3.1.2"
+    rollback_version: "3.1.1"
+    delivery_retry_delay_seconds: 15
