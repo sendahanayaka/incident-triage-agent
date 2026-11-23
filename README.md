@@ -1,6 +1,6 @@
 # AI-Powered Incident Triage and Release Readiness Agent
 
-> **Project Status — Phase 7 complete.** The FastAPI backend API is implemented with modular endpoints for investigations, operational metrics, logs, deployments, SQLite incidents, human-in-the-loop approvals, and sanitized agent traces. All 29 backend tests pass.
+> **Project Status — Phase 8 complete.** The CLI Human-in-the-Loop (HITL) Approval Gate is implemented in the agent orchestrator. Mutation tools (`create_incident_ticket`) are safely discovered but intercepted with a terminal confirmation prompt, requiring explicit affirmative approval (`y`/`yes`) and guarded by single-use authorization tokens tied to exact argument hashes. All 20 agent-client tests and 29 backend tests pass.
 
 ---
 
@@ -112,7 +112,16 @@ incident-triage-agent/
   - Human-in-the-Loop (HITL) approval safety workflow with SQLite persistence
   - Sanitized agent tracing with secret redaction
   - Comprehensive pytest test suite (29 tests passing)
-- [ ] **Phase 8: Frontend Development (React + TypeScript + Vite)**
+- [x] **Phase 8: CLI Human-in-the-Loop (HITL) Approval Gate**
+  - Interception of mutation tools (`telemetry__create_incident_ticket`) before execution
+  - CLI confirmation prompt displaying formatted incident proposal (`[y/N]`)
+  - Strict affirmative approval parsing (`y`, `yes`, case-insensitively); safe default rejection
+  - Cryptographically robust single-use authorization tokens tied to exact argument SHA-256 hashes
+  - Prevention of direct bypass or duplicate tool execution
+  - Tracing of approval decisions (`approved`/`rejected`) and secret sanitization
+  - Comprehensive unit and integration test suite (10 test scenarios, all passing)
+- [ ] **Phase 9: Evaluation Benchmark Suite & Scenarios**
+- [ ] **Phase 10: Frontend Development (React + TypeScript + Vite)**
 - [ ] **Final Documentation & Release Verification**
 
 ---
@@ -198,7 +207,36 @@ The agent opens both MCP sessions and discovers their read-only tools and schema
 | `AGENT_TOOL_TIMEOUT_SECONDS` | `10` seconds per tool call. |
 | `TRACE_FILE_PATH` | `traces/agent_traces.jsonl`. Records invocation arguments, timings, and outcomes by run ID. |
 
-The investigation CLI exposes read-only tools. Ticket creation will be wired into the operator approval flow.
+The investigation CLI exposes read-only tools and safely discovers mutation tools (`create_incident_ticket`). When a mutation tool is invoked, execution pauses for explicit operator approval.
+
+## CLI Human-in-the-Loop (HITL) Approval Gate
+
+The agent orchestrator implements a strict, interactive approval gate for any state-altering or destructive actions:
+
+1. **Mutation Tool Interception:** Mutation tools (such as `telemetry__create_incident_ticket`) are registered with mutation flags. Read-only tools (`search_logs`, `get_deployment_history`, filesystem tools) execute autonomously within the 8-iteration budget.
+2. **Terminal Confirmation Prompt:** Execution halts and presents a structured proposal:
+   ```text
+   ============================================================
+   HUMAN APPROVAL REQUIRED: CREATE INCIDENT TICKET
+   ============================================================
+   Action:           Create incident ticket in database
+   Incident Title:   Production Outage: payments-api elevated 500 errors
+   Severity:         CRITICAL
+   Affected Service: payments-api
+   Assignee:         payments-oncall
+   Summary:          Elevated 500 responses caused by timeout misconfiguration.
+   ------------------------------------------------------------
+   Do you approve creating this incident ticket? [y/N]:
+   ```
+3. **Strict Affirmative Input:** Only affirmative answers (`y`, `yes`, case-insensitively) grant execution permission. Any other response (including Enter/empty string, `n`, `no`, whitespace, or invalid tokens) triggers default rejection.
+4. **Single-Use Authorization Token & Parameter Integrity:** Approving a mutation issues an ephemeral, single-use token cryptographically bound to the SHA-256 hash of the exact tool arguments. The underlying `AgentTools.call()` strictly verifies this token. If arguments are altered or if the tool is invoked again without new human approval, execution is blocked with `PermissionError`.
+5. **Rejection Handling:** If rejected by the operator, the tool is not called. A structured rejection feedback string is returned to the model (`"Action '...' rejected by operator."`), allowing the LLM to complete its reasoning and provide a diagnostic summary without claiming state was altered.
+6. **Trace Auditing & Secret Redaction:** All approval requests, operator decisions, and tool outputs are recorded in `traces/agent_traces.jsonl` with sensitive credentials/tokens sanitized.
+
+To run the HITL approval test suite:
+```bash
+python -m unittest discover -s agent-client/tests -v
+```
 
 ## Run the FastAPI Backend API
 

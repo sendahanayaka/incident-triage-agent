@@ -4,6 +4,8 @@ import argparse
 import asyncio
 import os
 import sys
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from dotenv import load_dotenv
 from mcp import MCPError
@@ -11,10 +13,13 @@ from openai import APIError, AsyncOpenAI
 
 from filesystem_mcp import REPO_ROOT
 from mcp_tools import connect_agent_tools
-from orchestrator import investigate
+from orchestrator import cli_approval_prompt, investigate
 
 
-async def run(question: str) -> str:
+async def run(
+    question: str,
+    approval_callback: Callable[[str, dict[str, Any]], bool | Awaitable[bool]] | None = None,
+) -> str:
     load_dotenv(REPO_ROOT / ".env")
     api_key = (os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or "").strip()
     model = (os.getenv("LLM_MODEL") or "").strip()
@@ -26,13 +31,21 @@ async def run(question: str) -> str:
     tool_timeout = float(os.getenv("AGENT_TOOL_TIMEOUT_SECONDS", "10"))
     trace_path = REPO_ROOT / os.getenv("TRACE_FILE_PATH", "traces/agent_traces.jsonl")
 
+    cb = approval_callback or cli_approval_prompt
+
     async with AsyncOpenAI(
         api_key=api_key, base_url=os.getenv("LLM_BASE_URL") or None, timeout=60, max_retries=1
     ) as llm:
         async with connect_agent_tools() as tools:
             return await investigate(
-                question, llm, model, tools,
-                trace_path=trace_path, max_iterations=max_iterations, tool_timeout=tool_timeout,
+                question,
+                llm,
+                model,
+                tools,
+                trace_path=trace_path,
+                max_iterations=max_iterations,
+                tool_timeout=tool_timeout,
+                approval_callback=cb,
             )
 
 

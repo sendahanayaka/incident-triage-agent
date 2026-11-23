@@ -1,8 +1,8 @@
 # System Architecture Documentation
 
 **Project Name:** AI-Powered Incident Triage and Release Readiness Agent  
-**Document Version:** 0.1.0 (Phase 0 Initialization)  
-**Status:** Architecture Blueprint / Planned Specification (Non-Implemented Baseline)
+**Document Version:** 0.8.0 (Phase 8 CLI HITL Approval Gate Implemented)  
+**Status:** Implemented CLI & Backend Core / Planned Frontend Baseline
 
 ---
 
@@ -259,16 +259,38 @@ Full observability through **JSONL** event logging (`traces/agent_traces.jsonl`)
 
 ---
 
-## 13. Human-in-the-Loop Approval Workflow (Planned)
+## 13. Human-in-the-Loop Approval Workflow
 
-Safety is a core architectural invariant. Destructive or state-altering actions cannot execute autonomously.
+Safety is a core architectural invariant. Destructive or state-altering actions cannot execute autonomously under any circumstance.
 
-1. **Classification:** Every MCP tool is statically or dynamically tagged with a risk tier (`READ_ONLY`, `LOW_RISK_MUTATION`, `HIGH_RISK_MUTATION`).
-2. **Detection**. When the agent requests `create_incident_ticket`, execution enters the `PENDING_APPROVAL` state.
-3. **Dispatch:** A structured approval request is saved to SQLite and surfaced to the React UI via WebSocket/polling.
-4. **Decision:** An operator reviews the proposed action, target service, and rationale:
-   - **Approve:** The orchestrator resumes execution and dispatches the tool call to the MCP server.
-   - **Reject:** The orchestrator notifies the LLM of the rejection with operator feedback, allowing it to formulate an alternate plan or stop.
+### 13.1 Tool Risk Classification
+Every MCP tool is statically or dynamically tagged with a risk classification:
+- **Read-Only Tools:** `search_logs`, `get_deployment_history`, filesystem inspection tools (`read_text_file`, `list_directory`), and resource queries (`service://runbooks/{service_name}`, `config://release-checklist`). These execute autonomously within the 8-iteration limit.
+- **Mutation Tools:** `create_incident_ticket` (`telemetry__create_incident_ticket`). Modifies persistent system state (SQLite `incident_tickets` table).
+
+### 13.2 CLI Approval Workflow (Implemented in Phase 8)
+1. **Tool Discovery:** The orchestrator discovers `create_incident_ticket` alongside read-only tools, registering it with `is_mutation=True`.
+2. **Execution Interception:** When the model emits a tool call for `create_incident_ticket`, `orchestrator._execute_tool()` intercepts the call before dispatching to the underlying MCP client.
+3. **Interactive Terminal Prompt:** Execution yields control to an asynchronous approval callback (`cli_approval_prompt`), which displays the ticket action, title, severity, affected service, assignee, and summary.
+4. **Strict Approval Parsing:**
+   - Evaluates input case-insensitively against `{"y", "yes"}`.
+   - Any other input (including Enter / empty line, EOF, `n`, `no`, or unknown input) defaults immediately to rejection (`approved=False`).
+5. **Single-Use Authorization Token:**
+   - On approval, the orchestrator requests an ephemeral authorization token via `tools.authorize_mutation(tool_name, arguments)`.
+   - The token is cryptographically tied to the SHA-256 hash of the exact canonical JSON representation of `arguments`.
+   - `AgentTools.call(name, arguments, approval_token=token)` validates that the token exists, matches the exact arguments, and is consumed (deleted) immediately upon execution.
+   - Any bypass attempt or direct invocation without a valid, unspent token raises `PermissionError`.
+6. **Operator Rejection Flow:**
+   - If rejected, the MCP tool is never invoked.
+   - A descriptive rejection error is injected back into the LLM conversation context: `Action 'telemetry__create_incident_ticket' was rejected by the operator.`
+   - The LLM receives this result and continues its diagnostic loop, summarizing root-cause findings without falsely asserting that an incident ticket was created.
+7. **Trace Logging:** Trace events capture `approval_required: true`, `approval_decision: "approved" | "rejected"`, timestamp, and sanitized arguments/results.
+
+### 13.3 Web Backend Approval Workflow (Implemented in Phase 7)
+For the web-based React dashboard, the FastAPI backend implements an equivalent asynchronous approval manager (`backend/app/approvals/manager.py`):
+- Pends approval requests in SQLite (`approvals` table).
+- Surfaces pending approvals via `GET /api/approvals/pending`.
+- Accepts decisions via `POST /api/approvals/{approval_id}/decision` (`APPROVED` or `REJECTED`) with operator identity and justification notes.
 
 ---
 

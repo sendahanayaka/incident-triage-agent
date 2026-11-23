@@ -1,5 +1,7 @@
 """Discover and route the MCP capabilities available to an investigation."""
 
+import hashlib
+import json
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -7,6 +9,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from mcp import Client, StdioServerParameters
 from mcp.types import CallToolResult, TextContent, TextResourceContents
@@ -15,18 +18,33 @@ from filesystem_mcp import REPO_ROOT, connect_filesystem
 
 ToolHandler = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 
+KNOWN_MUTATION_TOOLS = frozenset({
+    "create_incident_ticket",
+    "telemetry__create_incident_ticket",
+})
+
 
 @dataclass
 class AgentTools:
     definitions: list[dict[str, Any]] = field(default_factory=list)
     _handlers: dict[str, ToolHandler] = field(default_factory=dict)
+    _mutation_tools: set[str] = field(default_factory=set)
+    _pending_authorizations: dict[str, tuple[str, dict[str, Any]]] = field(default_factory=dict)
 
     def register(
-        self, name: str, description: str, schema: dict[str, Any], handler: ToolHandler
+        self,
+        name: str,
+        description: str,
+        schema: dict[str, Any],
+        handler: ToolHandler,
+        *,
+        is_mutation: bool = False,
     ) -> None:
         if name in self._handlers:
             raise ValueError(f"Duplicate agent tool {name!r}.")
         self._handlers[name] = handler
+        if is_mutation or name in KNOWN_MUTATION_TOOLS:
+            self._mutation_tools.add(name)
         self.definitions.append({
             "type": "function",
             "function": {
@@ -37,10 +55,46 @@ class AgentTools:
             },
         })
 
-    async def call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    def is_mutation(self, name: str) -> bool:
+        """Return True if the specified registered tool performs state-mutating operations."""
+        return name in self._handlers and (name in self._mutation_tools or name in KNOWN_MUTATION_TOOLS)
+
+    def authorize_mutation(self, name: str, arguments: dict[str, Any]) -> str:
+        """Issue a single-use authorization token for a mutation tool with exact arguments."""
+        if not self.is_mutation(name):
+            raise ValueError(f"Tool {name!r} is not a mutation tool; authorization is not required.")
+        token_payload = f"{name}:{json.dumps(arguments, sort_keys=True)}:{uuid4().hex}"
+        token = hashlib.sha256(token_payload.encode()).hexdigest()
+        self._pending_authorizations[token] = (name, arguments.copy())
+        return token
+
+    async def call(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        approval_token: str | None = None,
+    ) -> dict[str, Any]:
+        """Call a registered tool, enforcing approval verification on mutation tools."""
         handler = self._handlers.get(name)
         if handler is None:
             raise PermissionError(f"Tool {name!r} is unavailable to this investigation.")
+
+        if self.is_mutation(name):
+            if not approval_token:
+                raise PermissionError(
+                    f"Mutation tool {name!r} requires human approval before execution."
+                )
+            if approval_token not in self._pending_authorizations:
+                raise PermissionError(
+                    f"Invalid or expired approval token for mutation tool {name!r}."
+                )
+            authorized_name, authorized_args = self._pending_authorizations.pop(approval_token)
+            if authorized_name != name or authorized_args != arguments:
+                raise PermissionError(
+                    "Approval parameters do not match requested execution parameters."
+                )
+
         return await handler(arguments)
 
 
@@ -104,15 +158,22 @@ async def connect_agent_tools() -> AsyncIterator[AgentTools]:
         async with connect_filesystem() as filesystem:
             tools = AgentTools()
             async for tool in _discover(telemetry.list_tools, "tools"):
-                if tool.annotations and tool.annotations.read_only_hint is True:
-                    tools.register(
-                        f"telemetry__{tool.name}", tool.description or tool.name,
-                        tool.input_schema, partial(_call_tool, telemetry.call_tool, tool.name),
-                    )
+                is_read_only = bool(tool.annotations and tool.annotations.read_only_hint is True)
+                is_mutation = (not is_read_only) or (tool.name in KNOWN_MUTATION_TOOLS)
+                tools.register(
+                    f"telemetry__{tool.name}",
+                    tool.description or tool.name,
+                    tool.input_schema,
+                    partial(_call_tool, telemetry.call_tool, tool.name),
+                    is_mutation=is_mutation,
+                )
             for tool in filesystem.tools:
                 tools.register(
-                    f"filesystem__{tool.name}", tool.description or tool.name,
-                    tool.input_schema, partial(_call_tool, filesystem.call_tool, tool.name),
+                    f"filesystem__{tool.name}",
+                    tool.description or tool.name,
+                    tool.input_schema,
+                    partial(_call_tool, filesystem.call_tool, tool.name),
+                    is_mutation=False,
                 )
 
             resources = [resource async for resource in _discover(telemetry.list_resources, "resources")]
@@ -133,5 +194,6 @@ async def connect_agent_tools() -> AsyncIterator[AgentTools]:
                         "additionalProperties": False,
                     },
                     partial(_read_resource, telemetry, uris),
+                    is_mutation=False,
                 )
             yield tools

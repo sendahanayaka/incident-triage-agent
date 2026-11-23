@@ -64,7 +64,11 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
             body = json.loads(request.content)
             self.assertEqual(body["model"], "test-model")
             functions = {tool["function"]["name"]: tool["function"] for tool in body["tools"]}
-            self.assertNotIn("telemetry__create_incident_ticket", functions)
+            self.assertIn("telemetry__create_incident_ticket", functions)
+            self.assertEqual(
+                set(functions["telemetry__create_incident_ticket"]["parameters"]["required"]),
+                {"title", "severity", "summary", "assignee"},
+            )
             self.assertEqual(
                 set(functions["telemetry__search_logs"]["parameters"]["required"]),
                 {"service_name", "severity", "limit"},
