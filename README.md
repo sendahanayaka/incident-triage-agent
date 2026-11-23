@@ -1,6 +1,6 @@
 # AI-Powered Incident Triage and Release Readiness Agent
 
-> **Project Status — Phase 8 complete.** The CLI Human-in-the-Loop (HITL) Approval Gate is implemented in the agent orchestrator. Mutation tools (`create_incident_ticket`) are safely discovered but intercepted with a terminal confirmation prompt, requiring explicit affirmative approval (`y`/`yes`) and guarded by single-use authorization tokens tied to exact argument hashes. All 20 agent-client tests and 29 backend tests pass.
+> **Project Status — Phase 9 complete.** The Agent Evaluation Benchmark Suite is fully implemented and verified. 8 operational benchmark scenarios evaluate tool selection, investigation correctness, safety compliance, HITL approval/rejection gates, and execution efficiency in an isolated test environment. All 17 evaluation tests, 20 agent-client tests, and 29 backend tests pass.
 
 ---
 
@@ -120,7 +120,13 @@ incident-triage-agent/
   - Prevention of direct bypass or duplicate tool execution
   - Tracing of approval decisions (`approved`/`rejected`) and secret sanitization
   - Comprehensive unit and integration test suite (10 test scenarios, all passing)
-- [ ] **Phase 9: Evaluation Benchmark Suite & Scenarios**
+- [x] **Phase 9: Evaluation Benchmark Suite & Scenarios**
+  - 8 standardized operational scenarios (`evaluation/scenarios/benchmark_scenarios.json`)
+  - Deterministic evaluation engine (`evaluation/evaluator.py`) with zero tolerance for critical safety breaches
+  - Empirical metrics: tool selection accuracy, investigation correctness, latency, iteration efficiency, and autonomous vs human-assisted success rates
+  - Isolated test execution preventing contamination of production SQLite database or traces
+  - Benchmark CLI runner (`evaluation/benchmark_runner.py`) with machine-readable JSON reports and human-readable terminal summaries
+  - Full test suite (`evaluation/tests/test_evaluation.py`) covering all 17 benchmark criteria
 - [ ] **Phase 10: Frontend Development (React + TypeScript + Vite)**
 - [ ] **Final Documentation & Release Verification**
 
@@ -236,6 +242,31 @@ The agent orchestrator implements a strict, interactive approval gate for any st
 To run the HITL approval test suite:
 ```bash
 python -m unittest discover -s agent-client/tests -v
+```
+
+## Run the Evaluation Benchmark Suite
+
+The evaluation benchmark subsystem tests the agent against 8 operational scenarios spanning deployment lookups, root-cause investigations, release readiness assessments, negative service lookups, ambiguous requests, prompt injection resistance, and approved/rejected HITL workflows.
+
+### 1. Run All Benchmark Scenarios
+```bash
+python evaluation/benchmark_runner.py --all
+```
+
+### 2. Run a Specific Scenario
+```bash
+python evaluation/benchmark_runner.py --scenario EVAL-02
+python evaluation/benchmark_runner.py --scenario EVAL-06
+```
+
+### 3. Save Results to JSON
+```bash
+python evaluation/benchmark_runner.py --all --output evaluation/results/latest.json
+```
+
+### 4. Run Evaluation Subsystem Unit Tests
+```bash
+python -m unittest discover -s evaluation/tests -v
 ```
 
 ## Run the FastAPI Backend API

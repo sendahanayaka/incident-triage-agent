@@ -153,7 +153,7 @@ async def _execute_tool(
             if isinstance(cb_res, Awaitable):
                 approved = await cb_res
             else:
-                approved = bool(cb_res)
+                approved = cb_res
 
             if not approved:
                 approval_decision = "rejected"
@@ -176,7 +176,7 @@ async def _execute_tool(
     except TimeoutError:
         status = "timeout"
         result = {"ok": False, "error": f"Tool timed out after {timeout_seconds:g} seconds."}
-    except (MCPError, OSError, ValueError, PermissionError) as error:
+    except (MCPError, OSError, ValueError) as error:
         status = "error"
         result = {"ok": False, "error": str(error)}
 
@@ -221,8 +221,19 @@ async def investigate(
     ]
 
     while True:
-        options = {"tools": tools.definitions} if remaining and tools.definitions else {}
-        response = await llm.chat.completions.create(model=model, messages=messages, **options)
+        has_tools = bool(remaining and tools.definitions)
+        if has_tools:
+            tool_defs: Any = tools.definitions
+            response: Any = await llm.chat.completions.create(  # type: ignore
+                model=model,
+                messages=messages,
+                tools=tool_defs,
+            )
+        else:
+            response = await llm.chat.completions.create(
+                model=model,
+                messages=messages,
+            )
         if not response.choices:
             raise RuntimeError("The model returned no choices.")
         message = response.choices[0].message
@@ -232,7 +243,7 @@ async def investigate(
             if not answer:
                 raise RuntimeError("The model returned no investigation summary.")
             return answer
-        if not options:
+        if not has_tools:
             raise RuntimeError("The model requested tools after the investigation tool budget ended.")
         if any(call.type != "function" for call in calls):
             raise RuntimeError("The model returned an unsupported tool call type.")
@@ -243,12 +254,15 @@ async def investigate(
             "tool_calls": [call.model_dump(exclude_none=True) for call in calls],
         })
         for call in calls:
+            fn = getattr(call, "function", None)
+            if fn is None:
+                continue
             if remaining:
                 remaining -= 1
                 result = await _execute_tool(
                     tools,
-                    call.function.name,
-                    call.function.arguments,
+                    fn.name,
+                    fn.arguments,
                     tool_timeout,
                     trace_path,
                     run_id,

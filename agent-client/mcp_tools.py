@@ -3,7 +3,7 @@
 import hashlib
 import json
 import os
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from functools import partial
@@ -129,7 +129,7 @@ async def _read_resource(
     return {
         "ok": True,
         "data": [
-            {"uri": str(item.uri), "text": item.text}
+            {"uri": item.uri, "text": item.text}
             for item in resource.contents
             if isinstance(item, TextResourceContents)
         ],
@@ -146,14 +146,14 @@ def _telemetry_parameters() -> StdioServerParameters:
         )
     overrides = {
         name: os.environ[name]
-        for name in ("OPS_TELEMETRY_DATA_DIR", "OPS_TELEMETRY_REFERENCE_TIME")
+        for name in ("OPS_TELEMETRY_DATA_DIR", "OPS_TELEMETRY_REFERENCE_TIME", "OPS_TELEMETRY_TICKET_PATH")
         if name in os.environ
     }
     return StdioServerParameters(command=str(Path(path).resolve()), cwd=REPO_ROOT, env=overrides)
 
 
 @asynccontextmanager
-async def connect_agent_tools() -> AsyncIterator[AgentTools]:
+async def connect_agent_tools() -> AsyncGenerator[AgentTools, None]:
     async with Client(_telemetry_parameters(), read_timeout_seconds=15) as telemetry:
         async with connect_filesystem() as filesystem:
             tools = AgentTools()

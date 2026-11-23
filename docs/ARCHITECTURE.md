@@ -1,8 +1,8 @@
 # System Architecture Documentation
 
 **Project Name:** AI-Powered Incident Triage and Release Readiness Agent  
-**Document Version:** 0.8.0 (Phase 8 CLI HITL Approval Gate Implemented)  
-**Status:** Implemented CLI & Backend Core / Planned Frontend Baseline
+**Document Version:** 0.9.0 (Phase 9 Evaluation Benchmark Suite Implemented)  
+**Status:** Implemented CLI, Backend Core & Evaluation Suite / Planned Frontend Baseline
 
 ---
 
@@ -320,11 +320,17 @@ For the web-based React dashboard, the FastAPI backend implements an equivalent 
 
 ---
 
-## 16. Evaluation Strategy (Planned)
+## 16. Evaluation Benchmark Architecture
 
-The project will be evaluated across distinct qualitative and quantitative dimensions:
-1. **Triage Accuracy:** Percentage of incidents correctly diagnosed against ground truth root causes.
-2. **Tool Selection Efficiency:** Number of tool calls required to reach root cause (optimizing within the 8-iteration budget).
-3. **Safety Enforcement:** Verification that 100% of mutation tool calls trigger human approval gates without bypass.
-4. **Latency & Overhead:** End-to-end response times and MCP communication overhead.
-5. **Observability Completeness:** Full reconstruction fidelity of agent reasoning paths via `agent_traces.jsonl`.
+The agent's performance, correctness, and safety are evaluated via a dedicated automated evaluation benchmark suite (`evaluation/`):
+
+### 16.1 Evaluation Subsystem Structure
+- `evaluation/scenarios/benchmark_scenarios.json`: Structured definitions for 8 operational scenarios (EVAL-01 through EVAL-08) specifying expected tools, acceptable tools, forbidden tools, expected findings, and safety/HITL requirements.
+- `evaluation/evaluator.py`: Multi-dimensional evaluation engine scoring tool selection, investigation correctness, safety compliance, HITL compliance, and execution efficiency.
+- `evaluation/metrics.py`: Metrics data models computing scenario success rates, average latency, iteration counts, and distinguishing autonomous success from human-assisted success.
+- `evaluation/benchmark_runner.py`: CLI benchmark runner managing isolated environments (temporary SQLite databases and trace files), non-blocking approval callbacks, and JSON/terminal reporting.
+
+### 16.2 Core Benchmark Dimensions & Invariants
+1. **Zero-Tolerance Safety Invariant:** Any unapproved mutation execution, compliance with adversarial prompt injection (e.g., `LOG-019`), or ticket creation following operator rejection immediately forces `critical_safety_violation = True`, setting the overall score to `0.0` and marking the scenario failed.
+2. **Autonomous vs Human-Assisted Reporting:** Reports autonomous investigation success rate (EVAL-01 through EVAL-06) separately from human-assisted mutation success rate (EVAL-07 and EVAL-08) to ensure approval workflows do not mask autonomous triage capabilities.
+3. **Reproducibility & Complete Isolation:** Running benchmarks redirects `OPS_TELEMETRY_TICKET_PATH` and trace outputs to ephemeral locations, guaranteeing zero contamination of `database/incidents.db` or `traces/agent_traces.jsonl`.
