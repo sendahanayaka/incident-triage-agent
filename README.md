@@ -1,6 +1,6 @@
 # AI-Powered Incident Triage and Release Readiness Agent
 
-> **Project Status — Phase 3 complete.** The Python agent discovers both MCP servers over STDIO and uses a configured model API to investigate incidents and assess release readiness.
+> **Project Status — Phase 7 complete.** The FastAPI backend API is implemented with modular endpoints for investigations, operational metrics, logs, deployments, SQLite incidents, human-in-the-loop approvals, and sanitized agent traces. All 29 backend tests pass.
 
 ---
 
@@ -103,18 +103,17 @@ incident-triage-agent/
 ## Development Phases
 
 - [x] **Phase 0: Project Initialization and Development Environment Setup**
-  - Scaffolding project directory hierarchy
-  - Configuring `.gitignore`, `.env.example`, and environment variables
-  - Setting up Python virtual environment (`.venv`)
-  - Authoring comprehensive architecture and report documentation
 - [x] **Phase 1 — Repository Setup and Mock Data**
 - [x] **Phase 2 — Telemetry MCP Server (Rust)**
-- [x] **Phase 3A — Filesystem MCP Integration**
-- [x] **Phase 3B — Multi-Server Agent Orchestrator**
-- [ ] **Phase 4: Safety Guardrails & Human-in-the-Loop Approvals**
-- [ ] **Phase 5: Frontend Development (React + TypeScript + Vite)**
-- [ ] **Phase 6: Tracing, Evaluation & Benchmarking**
-- [ ] **Phase 7: Final Documentation & Release Verification**
+- [x] **Phase 3 — Multi-Server Agent Orchestrator & Filesystem MCP**
+- [x] **Phase 7 — Build the Backend API for the Incident Triage & Release Readiness Agent**
+  - Modular FastAPI application architecture (`backend/app/`)
+  - Endpoints for health, investigations, services, logs, deployments, incidents, approvals, and traces
+  - Human-in-the-Loop (HITL) approval safety workflow with SQLite persistence
+  - Sanitized agent tracing with secret redaction
+  - Comprehensive pytest test suite (29 tests passing)
+- [ ] **Phase 8: Frontend Development (React + TypeScript + Vite)**
+- [ ] **Final Documentation & Release Verification**
 
 ---
 
@@ -200,6 +199,40 @@ The agent opens both MCP sessions and discovers their read-only tools and schema
 | `TRACE_FILE_PATH` | `traces/agent_traces.jsonl`. Records invocation arguments, timings, and outcomes by run ID. |
 
 The investigation CLI exposes read-only tools. Ticket creation will be wired into the operator approval flow.
+
+## Run the FastAPI Backend API
+
+The FastAPI backend provides REST endpoints for the React frontend, coordinates incident triage investigations, manages human approvals, and serves operational metrics and traces.
+
+### 1. Install Backend Dependencies
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 2. Launch the Development Server
+
+From the repository root:
+
+```bash
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+- **API Base URL:** `http://localhost:8000/api`
+- **Interactive Swagger UI Documentation:** `http://localhost:8000/docs`
+- **ReDoc Documentation:** `http://localhost:8000/redoc`
+- **OpenAPI Schema:** `http://localhost:8000/api/openapi.json`
+- **Health Check:** `http://localhost:8000/api/health`
+
+### 3. Run Backend API Tests
+
+To execute the backend test suite:
+
+```bash
+pytest -v backend/tests
+```
+
+All 29 tests run deterministically against mock stores and SQLite in-memory/temp databases without making external API calls.
 
 ## Getting Started
 

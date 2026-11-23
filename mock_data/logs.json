@@ -1,69 +1,5 @@
 [
   {
-    "id": "LOG-037",
-    "timestamp": "2026-11-20T02:58:00Z",
-    "service_name": "auth-service",
-    "severity": "INFO",
-    "event": "token_validation_ok",
-    "message": "A fresh staging session passed validation on version 1.8.3."
-  },
-  {
-    "id": "LOG-038",
-    "timestamp": "2026-11-20T03:00:00Z",
-    "service_name": "auth-service",
-    "severity": "WARN",
-    "event": "signing_key_cache_miss",
-    "message": "The staging identity provider rotated its signing key. The local cache had no entry for the active key."
-  },
-  {
-    "id": "LOG-039",
-    "timestamp": "2026-11-20T03:02:00Z",
-    "service_name": "auth-service",
-    "severity": "ERROR",
-    "event": "token_validation_failed",
-    "message": "A fresh staging token was rejected with HTTP 401 because the active signing key was unavailable in the cache."
-  },
-  {
-    "id": "LOG-040",
-    "timestamp": "2026-11-20T03:04:00Z",
-    "service_name": "auth-service",
-    "severity": "ERROR",
-    "event": "auth_smoke_failed",
-    "message": "Three consecutive fresh-token smoke probes returned HTTP 401 on version 1.8.3."
-  },
-  {
-    "id": "LOG-041",
-    "timestamp": "2026-11-20T03:08:00Z",
-    "service_name": "auth-service",
-    "severity": "INFO",
-    "event": "signing_key_cache_refreshed",
-    "message": "Deployment auth-087 loaded the active signing key and repopulated the staging cache."
-  },
-  {
-    "id": "LOG-042",
-    "timestamp": "2026-11-20T03:10:00Z",
-    "service_name": "auth-service",
-    "severity": "INFO",
-    "event": "auth_smoke_passed",
-    "message": "Three consecutive fresh-token smoke probes passed on version 1.8.4 after the cache refresh."
-  },
-  {
-    "id": "LOG-043",
-    "timestamp": "2026-11-20T03:17:00Z",
-    "service_name": "notification-worker",
-    "severity": "INFO",
-    "event": "deployment_ready",
-    "message": "Deployment notify-116 started the staging consumer with a 15 second delivery retry delay."
-  },
-  {
-    "id": "LOG-044",
-    "timestamp": "2026-11-20T03:21:00Z",
-    "service_name": "payments-api",
-    "severity": "INFO",
-    "event": "checkout_smoke_passed",
-    "message": "The staging checkout smoke test passed on version 2.4.1 with the 1000 ms gateway timeout."
-  },
-  {
     "id": "LOG-001",
     "timestamp": "2026-11-20T03:22:00Z",
     "service_name": "auth-service",
@@ -350,5 +286,69 @@
     "severity": "INFO",
     "event": "health_probe_passed",
     "message": "Staging delivery smoke probe passed after the queue drained."
+  },
+  {
+    "id": "LOG-037",
+    "timestamp": "2026-11-20T02:58:00Z",
+    "service_name": "auth-service",
+    "severity": "INFO",
+    "event": "token_validation_ok",
+    "message": "A fresh staging session passed validation on version 1.8.3."
+  },
+  {
+    "id": "LOG-038",
+    "timestamp": "2026-11-20T03:00:00Z",
+    "service_name": "auth-service",
+    "severity": "WARN",
+    "event": "signing_key_cache_miss",
+    "message": "The staging identity provider rotated its signing key. The local cache had no entry for the active key."
+  },
+  {
+    "id": "LOG-039",
+    "timestamp": "2026-11-20T03:02:00Z",
+    "service_name": "auth-service",
+    "severity": "ERROR",
+    "event": "token_validation_failed",
+    "message": "A fresh staging token was rejected with HTTP 401 because the active signing key was unavailable in the cache."
+  },
+  {
+    "id": "LOG-040",
+    "timestamp": "2026-11-20T03:04:00Z",
+    "service_name": "auth-service",
+    "severity": "ERROR",
+    "event": "auth_smoke_failed",
+    "message": "Three consecutive fresh-token smoke probes returned HTTP 401 on version 1.8.3."
+  },
+  {
+    "id": "LOG-041",
+    "timestamp": "2026-11-20T03:08:00Z",
+    "service_name": "auth-service",
+    "severity": "INFO",
+    "event": "signing_key_cache_refreshed",
+    "message": "Deployment auth-087 loaded the active signing key and repopulated the staging cache."
+  },
+  {
+    "id": "LOG-042",
+    "timestamp": "2026-11-20T03:10:00Z",
+    "service_name": "auth-service",
+    "severity": "INFO",
+    "event": "auth_smoke_passed",
+    "message": "Three consecutive fresh-token smoke probes passed on version 1.8.4 after the cache refresh."
+  },
+  {
+    "id": "LOG-043",
+    "timestamp": "2026-11-20T03:17:00Z",
+    "service_name": "notification-worker",
+    "severity": "INFO",
+    "event": "deployment_ready",
+    "message": "Deployment notify-116 started the staging consumer with a 15 second delivery retry delay."
+  },
+  {
+    "id": "LOG-044",
+    "timestamp": "2026-11-20T03:21:00Z",
+    "service_name": "payments-api",
+    "severity": "INFO",
+    "event": "checkout_smoke_passed",
+    "message": "The staging checkout smoke test passed on version 2.4.1 with the 1000 ms gateway timeout."
   }
 ]

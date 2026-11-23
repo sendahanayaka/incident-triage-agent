@@ -87,13 +87,68 @@ The frontend is built with **React**, **TypeScript**, and **Vite** (with Tailwin
 
 ---
 
-## 4. FastAPI Backend Responsibilities (Planned)
+## 4. FastAPI Backend Responsibilities (Implemented in Phase 7)
 
-The backend is developed in **Python** using **FastAPI**:
-- **API Endpoints:** RESTful endpoints for incident ingestion, agent run triggering, approval handling, and trace retrieval.
-- **Session Management:** Coordinates user sessions, background execution tasks, and event streaming.
-- **Safety Policy Enforcement:** Validates proposed tool calls against risk policies prior to execution.
-- **Storage Coordination:** Coordinates reads and writes with SQLite for persistent state and JSONL for trace streaming.
+The backend is developed in **Python** using **FastAPI**, structured into a clean, modular service architecture:
+
+```text
+backend/
+├── requirements.txt
+├── app/
+│   ├── main.py                  # FastAPI application, CORS, and global exception handlers
+│   ├── core/
+│   │   ├── config.py            # Pydantic Settings, environment and dynamic path resolution
+│   ├── api/
+│   │   ├── dependencies.py      # Dependency injection providers for services
+│   │   └── routes/              # Modular API route controllers
+│   │       ├── health.py        # GET /api/health
+│   │       ├── investigations.py# POST /api/investigations, GET /api/investigations/{id}
+│   │       ├── services.py      # GET /api/services
+│   │       ├── logs.py          # GET /api/logs
+│   │       ├── deployments.py   # GET /api/deployments
+│   │       ├── incidents.py     # GET /api/incidents
+│   │       ├── approvals.py     # GET /api/approvals/pending, POST /approve, POST /reject
+│   │       └── traces.py        # GET /api/traces
+│   ├── models/                  # Pydantic request and response schemas
+│   ├── services/                # Business logic and data coordination layer
+│   ├── orchestrator/            # Integration bridge to Python agent orchestrator
+│   ├── mcp/                     # Integration bridge to MCP client connections
+│   ├── safety/                  # Action risk classification and guardrails
+│   ├── approvals/               # SQLite approval workflow manager
+│   └── tracing/                 # Sanitized trace log loader with secret redaction
+└── tests/                       # Complete pytest suite with 29 test cases
+```
+
+### 4.1 REST API Endpoints
+
+| HTTP Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Health check returning status and application metadata |
+| `POST` | `/api/investigations` | Start AI-powered incident triage or release readiness investigation |
+| `GET` | `/api/investigations/{id}` | Retrieve investigation findings, citations, and tool call history |
+| `GET` | `/api/services` | Retrieve simulated operational services, status, and health metrics |
+| `GET` | `/api/logs` | Query logs with optional service, severity, and limit filters |
+| `GET` | `/api/deployments` | Retrieve deployment history with optional service filter |
+| `GET` | `/api/incidents` | Retrieve persisted incident tickets from SQLite (`database/incidents.db`) |
+| `GET` | `/api/approvals/pending` | Retrieve pending human-in-the-loop action proposals |
+| `POST` | `/api/approvals/{id}/approve` | Approve and execute a pending mutating action |
+| `POST` | `/api/approvals/{id}/reject` | Reject a pending action, preventing execution |
+| `GET` | `/api/traces` | Retrieve sanitized agent execution traces scrubbed of secrets |
+| `GET` | `/` | Root discovery endpoint |
+
+### 4.2 Cross-Origin Resource Sharing (CORS)
+CORS is configured via FastAPI's `CORSMiddleware`, allowing connections from frontend origins:
+- `http://localhost:5173` (Vite dev server)
+- `http://localhost:3000`
+- `http://127.0.0.1:5173`
+- `http://127.0.0.1:3000`
+
+### 4.3 Error Handling and Sanitization
+- `HTTPException` returns standardized `{"detail": ...}` payloads.
+- `RequestValidationError` returns HTTP 422 with validation errors.
+- `ValueError` returns HTTP 400 Bad Request.
+- Unhandled internal exceptions return HTTP 500 without leaking stack traces or credentials to clients.
+- Traces automatically redact API keys, tokens, and authorization headers before transmission.
 
 ---
 
