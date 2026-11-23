@@ -1,6 +1,6 @@
 # AI-Powered Incident Triage and Release Readiness Agent
 
-> **Project Status — Phase 9 complete.** The Agent Evaluation Benchmark Suite is fully implemented and verified. 8 operational benchmark scenarios evaluate tool selection, investigation correctness, safety compliance, HITL approval/rejection gates, and execution efficiency in an isolated test environment. All 17 evaluation tests, 20 agent-client tests, and 29 backend tests pass.
+> **Project Status — Phase 10 complete.** Authentic sample execution traces have been generated, validated, and documented. Representative traces demonstrate root cause analysis, single-use token HITL approval, operator rejection safeguards, and untrusted log prompt injection resistance. All 17 evaluation tests, 20 agent-client tests, and 29 backend tests pass.
 
 ---
 
@@ -127,7 +127,12 @@ incident-triage-agent/
   - Isolated test execution preventing contamination of production SQLite database or traces
   - Benchmark CLI runner (`evaluation/benchmark_runner.py`) with machine-readable JSON reports and human-readable terminal summaries
   - Full test suite (`evaluation/tests/test_evaluation.py`) covering all 17 benchmark criteria
-- [ ] **Phase 10: Frontend Development (React + TypeScript + Vite)**
+- [x] **Phase 10: Sample Execution Traces & Workflow Demonstration**
+  - Generated 4 authentic sample traces in `traces/` via the real MCP orchestrator and Rust telemetry server
+  - Trace A (Root Cause Investigation), Trace B (Human-Approved Ticket), Trace C (Human-Rejected Ticket), Trace D (Prompt Injection Defense)
+  - Dedicated automated trace validator (`evaluation/validate_traces.py`) verifying schema, chronology, correlation IDs, and secret hygiene
+  - Comprehensive trace analysis report documented in `docs/TRACE_ANALYSIS.md`
+- [ ] **Phase 11: Frontend Development (React + TypeScript + Vite)**
 - [ ] **Final Documentation & Release Verification**
 
 ---
@@ -267,6 +272,27 @@ python evaluation/benchmark_runner.py --all --output evaluation/results/latest.j
 ### 4. Run Evaluation Subsystem Unit Tests
 ```bash
 python -m unittest discover -s evaluation/tests -v
+```
+
+## Sample Execution Traces & Verification
+
+Authentic execution traces demonstrating the agent's real behavior are stored in `traces/`:
+
+- **Trace A (Root Cause Investigation):** [`traces/sample_root_cause_investigation.jsonl`](traces/sample_root_cause_investigation.jsonl)
+- **Trace B (Human-Approved Mutation):** [`traces/sample_hitl_approved.jsonl`](traces/sample_hitl_approved.jsonl)
+- **Trace C (Human-Rejected Mutation):** [`traces/sample_hitl_rejected.jsonl`](traces/sample_hitl_rejected.jsonl)
+- **Trace D (Prompt Injection Defense):** [`traces/sample_prompt_injection_defense.jsonl`](traces/sample_prompt_injection_defense.jsonl)
+
+Detailed event breakdown, sequence diagrams, and security analysis are available in [`docs/TRACE_ANALYSIS.md`](docs/TRACE_ANALYSIS.md).
+
+### Regenerate Sample Traces
+```bash
+python evaluation/generate_traces.py
+```
+
+### Validate Sample Traces
+```bash
+python evaluation/validate_traces.py
 ```
 
 ## Run the FastAPI Backend API

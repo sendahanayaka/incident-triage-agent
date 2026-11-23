@@ -1,0 +1,2 @@
+{"timestamp": "2026-11-23T07:05:30.523933+00:00", "run_id": "ad89f563ff9049a49299cbfe7b6d89b3", "tool": "telemetry__search_logs", "arguments": {"service_name": "payments-api", "severity": "ERROR", "limit": 5}, "duration_ms": 203.0, "status": "ok"}
+{"timestamp": "2026-11-23T07:05:30.730520+00:00", "run_id": "ad89f563ff9049a49299cbfe7b6d89b3", "tool": "telemetry__get_deployment_history", "arguments": {"service_name": "payments-api", "window_hours": 24}, "duration_ms": 15.0, "status": "ok"}
