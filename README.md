@@ -329,6 +329,60 @@ pytest -v backend/tests
 
 All 29 tests run deterministically against mock stores and SQLite in-memory/temp databases without making external API calls.
 
+## Run the React Frontend Dashboard
+
+The React frontend provides an engineering operations portal connecting directly to the FastAPI backend.
+
+### 1. Prerequisites & Environment Configuration
+
+Ensure Node.js (v18+) is installed. Navigate to the `frontend/` directory and configure environment variables:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+Default configuration in `frontend/.env`:
+```ini
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+### 2. Install Dependencies & Start Development Server
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend dashboard will be available at `http://localhost:5173`.
+
+### 3. Frontend Functionality
+
+- **Dashboard (`/`):** Real-time operational metrics, monitored service health, pending HITL approval banner, and recent incident & deployment activity.
+- **Service Directory (`/services`):** Microservice statuses (`auth-service`, `payments-api`, `notification-worker`), runbook resource availability (`service://runbooks/{service}`), error counts, and 1-click investigation triggers.
+- **Investigations (`/investigations`):** AI investigation console allowing natural language queries to the agent orchestrator, accompanied by real-time ReAct progress states, synthesized findings, evidence citations, and tool invocation timelines.
+- **Incident Tickets (`/incidents`):** Persisted SQLite incident records (`INC-1042`, etc.) with severity badges and assignee details.
+- **HITL Approvals (`/approvals`):** Human-in-the-Loop approval gate allowing operators to review proposed mutation tools, inspect parameters, and execute confirmed approvals or rejections.
+- **Telemetry Logs (`/logs`):** Queryable operational logs with filtering by service (`payments-api`, etc.), severity level (`INFO`, `WARN`, `ERROR`, `FATAL`), and pagination limits.
+- **Deployment History (`/deployments`):** Release history table with commit hashes, versions, timestamps, status, rollback status, and release summaries.
+- **Agent Traces (`/traces`):** Execution trace viewer displaying sanitized JSONL tool calls, execution latency, and arguments.
+
+### 4. Run Frontend Tests & Production Build
+
+```bash
+# Execute Vitest test suite (9 tests across 6 suites)
+npm test
+
+# Build production distribution bundle
+npm run build
+```
+
+### 5. Backend Dependency & Limitations
+
+- **Backend Dependency:** The frontend requires the FastAPI backend to be running on `http://localhost:8000`. If offline, the interface displays an operational connection alert while maintaining UI stability.
+- **HITL Safeguard:** Direct creation of incident tickets from the frontend is prohibited. Tickets can only be created when proposed during an agent investigation and confirmed by an operator through the HITL approval gate.
+
 ## Getting Started
 
 ### Prerequisites
