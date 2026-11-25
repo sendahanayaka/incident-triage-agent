@@ -1,6 +1,16 @@
 # AI-Powered Incident Triage and Release Readiness Agent
 
-> **Project Status — Phase 10 complete.** Authentic sample execution traces have been generated, validated, and documented. Representative traces demonstrate root cause analysis, single-use token HITL approval, operator rejection safeguards, and untrusted log prompt injection resistance. All 17 evaluation tests, 20 agent-client tests, and 29 backend tests pass.
+> **Project Status — Phase 14 & 15 complete.** The application features a dual-mode, OpenRouter-ready architecture with a strict deterministic offline mode. In offline mode, the agent executes full ReAct investigations, real MCP tool discovery, HITL gates, and JSONL tracing with 0 external API calls and no API key required. Switching to live OpenRouter is 100% configuration-driven via `.env` with **zero code modifications**. All test suites (40 backend, 20 agent-client, 17 evaluation, 9 frontend) pass.
+
+---
+
+## Documentation Quick Links
+- **[OpenRouter Configuration Guide](docs/LLM_PROVIDER_CONFIGURATION.md):** Environment variables & zero-code live activation instructions.
+- **[Manual Testing Guide](docs/MANUAL_TESTING_GUIDE.md):** Complete step-by-step walkthrough of all application pages and HITL gate testing.
+- **[Comprehensive Test Cases](docs/TEST_CASES.md):** Automated and manual test case catalogue across all components.
+- **[Phase 14 & 15 Implementation Report](docs/PHASE_14_15_IMPLEMENTATION_REPORT.md):** Full technical implementation and verification report.
+- **[Final Project Report](REPORT.md):** Project overview, architecture, security, and benchmark findings.
+- **[Architecture Specification](docs/ARCHITECTURE.md):** System architecture, MCP tool schemas, and data flow diagrams.
 
 ---
 
@@ -132,8 +142,45 @@ incident-triage-agent/
   - Trace A (Root Cause Investigation), Trace B (Human-Approved Ticket), Trace C (Human-Rejected Ticket), Trace D (Prompt Injection Defense)
   - Dedicated automated trace validator (`evaluation/validate_traces.py`) verifying schema, chronology, correlation IDs, and secret hygiene
   - Comprehensive trace analysis report documented in `docs/TRACE_ANALYSIS.md`
-- [ ] **Phase 11: Frontend Development (React + TypeScript + Vite)**
-- [ ] **Final Documentation & Release Verification**
+- [x] **Phase 11: Final Project Report (REPORT.md)**
+- [x] **Phase 12: React Frontend Implementation (Incident Triage Dashboard)**
+  - Implemented 8 modular views: Dashboard, Services, Investigations, Incidents, Approvals, Logs, Deployments, and Traces
+  - Pure React + TypeScript + Vite + CSS architecture with Lucide icons
+  - 100% connected to FastAPI backend
+- [x] **Phase 13: Full System Integration & Verification**
+  - Verified end-to-end integration between Frontend, Backend, Agent Orchestrator, Rust MCP, SQLite, and Traces
+- [x] **Phase 14 & 15: OpenRouter-Ready Agent Architecture + Offline Testing**
+  - Integrated dynamic LLM Provider (`agent-client/llm_provider.py`) supporting OpenRouter live mode and deterministic offline mode
+  - In offline mode, executes full ReAct investigations, real MCP tool discovery, HITL gates, and JSONL tracing with 0 external API calls
+  - Live OpenRouter activation via `.env` configuration alone (`LLM_PROVIDER=openrouter`, `LLM_MODE=live`) with **zero code modifications**
+  - Added frontend LLM runtime status badge and architecture status cards
+  - Comprehensive automated test suites (40 backend tests, 20 agent-client tests, 17 evaluation benchmark tests, 9 frontend tests)
+
+---
+
+## Running the Application
+
+### 1. Offline Mode (Default — Zero API Key Required)
+Run the backend and frontend immediately:
+```powershell
+# Terminal 1: Backend API
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Terminal 2: React Dashboard
+cd frontend
+npm run dev
+```
+Open `http://localhost:5173` in your browser.
+
+### 2. Switching to Live OpenRouter Mode (Zero Code Modifications)
+When an OpenRouter API key is provided, edit your `.env`:
+```env
+LLM_PROVIDER=openrouter
+LLM_MODE=live
+LLM_MODEL=anthropic/claude-3.5-sonnet
+LLM_API_KEY=sk-or-v1-your-actual-api-key
+```
+Restart the backend service. The application immediately runs live OpenRouter completions with full tool calling. For complete details, see [LLM_PROVIDER_CONFIGURATION.md](docs/LLM_PROVIDER_CONFIGURATION.md).
 
 ---
 

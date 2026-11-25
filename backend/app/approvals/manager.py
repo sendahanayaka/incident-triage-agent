@@ -65,13 +65,37 @@ def create_approval(
     risk_level: str = "HIGH",
     requested_by: str = "agent",
 ) -> ApprovalResponse:
-    """Create a new pending approval record."""
-    approval_id = f"app-{uuid4().hex[:8]}"
-    created_at = datetime.now(timezone.utc).isoformat()
+    """Create a new pending approval record (or reuse existing pending one if identical)."""
     params_json = json.dumps(parameters)
-
     conn = get_connection(db_path)
     try:
+        # Deduplication: return existing pending approval if identical action & params
+        cursor = conn.execute(
+            """
+            SELECT id, action_type, description, parameters, risk_level,
+                   status, created_at, requested_by, execution_status
+            FROM approvals
+            WHERE action_type = ? AND parameters = ? AND status = 'pending'
+            ORDER BY created_at DESC LIMIT 1
+            """,
+            (action_type, params_json),
+        )
+        row = cursor.fetchone()
+        if row:
+            return ApprovalResponse(
+                id=row["id"],
+                action_type=row["action_type"],
+                description=row["description"],
+                parameters=parameters,
+                risk_level=row["risk_level"],
+                status=row["status"],
+                created_at=row["created_at"],
+                requested_by=row["requested_by"],
+                execution_status=row["execution_status"],
+            )
+
+        approval_id = f"app-{uuid4().hex[:8]}"
+        created_at = datetime.now(timezone.utc).isoformat()
         conn.execute(
             """
             INSERT INTO approvals (

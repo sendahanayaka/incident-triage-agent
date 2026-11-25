@@ -9,9 +9,10 @@ from typing import Any
 
 from dotenv import load_dotenv
 from mcp import MCPError
-from openai import APIError, AsyncOpenAI
+from openai import APIError
 
 from filesystem_mcp import REPO_ROOT
+from llm_provider import get_llm_client, load_llm_config_from_env
 from mcp_tools import connect_agent_tools
 from orchestrator import cli_approval_prompt, investigate
 
@@ -21,21 +22,18 @@ async def run(
     approval_callback: Callable[[str, dict[str, Any]], bool | Awaitable[bool]] | None = None,
 ) -> str:
     load_dotenv(REPO_ROOT / ".env")
-    api_key = (os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or "").strip()
-    model = (os.getenv("LLM_MODEL") or "").strip()
-    if not api_key or not model:
-        raise ValueError("Set LLM_API_KEY and LLM_MODEL in the repository .env or your environment.")
     if not question.strip():
         raise ValueError("Enter an incident triage or release readiness question.")
+
+    config = load_llm_config_from_env()
     max_iterations = int(os.getenv("MAX_AGENT_ITERATIONS", "8"))
     tool_timeout = float(os.getenv("AGENT_TOOL_TIMEOUT_SECONDS", "10"))
     trace_path = REPO_ROOT / os.getenv("TRACE_FILE_PATH", "traces/agent_traces.jsonl")
 
     cb = approval_callback or cli_approval_prompt
 
-    async with AsyncOpenAI(
-        api_key=api_key, base_url=os.getenv("LLM_BASE_URL") or None, timeout=60, max_retries=1
-    ) as llm:
+    llm, model = get_llm_client(config)
+    async with llm:
         async with connect_agent_tools() as tools:
             return await investigate(
                 question,

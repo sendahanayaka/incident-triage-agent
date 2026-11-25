@@ -23,7 +23,7 @@ import { getErrorMessage } from '../api/client';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { refreshCount } = useLayout();
+  const { refreshCount, health } = useLayout();
 
   const [services, setServices] = useState<ServiceResponse[]>([]);
   const [incidents, setIncidents] = useState<IncidentResponse[]>([]);

@@ -38,18 +38,35 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("TRACE_FILE_PATH", "traces/agent_traces.jsonl")
     )
 
-    # LLM and Agent
+    # LLM and Agent Configuration (OpenRouter & Strict Offline Mode)
+    llm_provider: str = Field(
+        default_factory=lambda: (os.getenv("LLM_PROVIDER") or "offline").strip().lower()
+    )
+    llm_mode: str = Field(
+        default_factory=lambda: (os.getenv("LLM_MODE") or "offline").strip().lower()
+    )
     llm_api_key: str = Field(
         default_factory=lambda: (os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or "").strip()
     )
     llm_model: str = Field(default_factory=lambda: (os.getenv("LLM_MODEL") or "").strip())
-    llm_base_url: str | None = Field(default_factory=lambda: os.getenv("LLM_BASE_URL") or None)
+    llm_base_url: str = Field(
+        default_factory=lambda: (os.getenv("LLM_BASE_URL") or "https://openrouter.ai/api/v1").strip()
+    )
     max_agent_iterations: int = Field(
         default_factory=lambda: int(os.getenv("MAX_AGENT_ITERATIONS", "8"))
     )
     agent_tool_timeout_seconds: float = Field(
         default_factory=lambda: float(os.getenv("AGENT_TOOL_TIMEOUT_SECONDS", "10"))
     )
+
+    @property
+    def is_offline_mode(self) -> bool:
+        return self.llm_mode == "offline" or self.llm_provider == "offline"
+
+    @property
+    def has_llm_api_key(self) -> bool:
+        clean = self.llm_api_key.strip()
+        return bool(clean and clean.lower() not in {"your-api-key", "none", "mock-key", ""})
 
     # CORS
     cors_origins: list[str] = [

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Menu, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Menu, Wifi, WifiOff, Cpu } from 'lucide-react';
 import { HealthResponse } from '../../types/api';
 
 interface HeaderProps {
@@ -38,6 +38,28 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {health?.llm && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12,
+              color: health.llm.mode === 'live' ? '#2563eb' : '#7c3aed',
+              backgroundColor: health.llm.mode === 'live' ? '#eff6ff' : '#f5f3ff',
+              padding: '4px 10px',
+              borderRadius: 16,
+              border: `1px solid ${health.llm.mode === 'live' ? '#bfdbfe' : '#ddd6fe'}`,
+              fontWeight: 500,
+            }}
+            data-testid="header-llm-indicator"
+            title={`Model: ${health.llm.model} | Base URL: ${health.llm.base_url} | API Key: ${health.llm.has_api_key ? 'Configured' : 'Offline (No Key Required)'}`}
+          >
+            <Cpu size={14} />
+            <span>LLM: {health.llm.mode.toUpperCase()} ({health.llm.provider})</span>
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',

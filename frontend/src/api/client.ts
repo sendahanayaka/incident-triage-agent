@@ -1,14 +1,14 @@
 import axios, { AxiosError } from 'axios';
 
-// Default to http://localhost:8000/api if VITE_API_BASE_URL is not set
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// Default to '/api' which Vite proxies to backend, or explicit VITE_API_BASE_URL
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const apiClient = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000, // Agent investigations can take 15-30s
+  timeout: 120000, // Live LLM multi-step agent investigations can take 30-90s
 });
 
 export function getErrorMessage(error: unknown): string {

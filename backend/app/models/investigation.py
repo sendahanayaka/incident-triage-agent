@@ -3,6 +3,8 @@
 from typing import Any
 from pydantic import BaseModel, Field
 
+from backend.app.models.approval import ApprovalResponse
+
 
 class InvestigationRequest(BaseModel):
     """Request payload to initiate an incident or release investigation."""
@@ -35,6 +37,10 @@ class InvestigationResponse(BaseModel):
     evidence: list[str] = Field(default_factory=list, description="Citations of logs, deployments, runbooks")
     recommendations: list[str] = Field(default_factory=list, description="Recommended remediation or action steps")
     tool_calls: list[ToolCallRecord] = Field(default_factory=list, description="List of tools invoked")
+    pending_approval: ApprovalResponse | None = Field(
+        default=None,
+        description="Pending approval record if a mutation action was proposed in this investigation",
+    )
     created_at: str = Field(..., description="UTC ISO timestamp of start")
     completed_at: str | None = Field(default=None, description="UTC ISO timestamp of completion")
 

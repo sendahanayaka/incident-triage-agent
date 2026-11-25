@@ -3,11 +3,21 @@
  * Never invent fields or types that do not exist in the backend models.
  */
 
+export interface LLMConfigStatus {
+  provider: string;
+  mode: string;
+  model: string;
+  has_api_key: boolean;
+  base_url: string;
+  is_ready: boolean;
+}
+
 export interface HealthResponse {
   status: string;
   application: string;
   version: string;
   environment: string;
+  llm?: LLMConfigStatus;
 }
 
 export interface ServiceResponse {
@@ -65,6 +75,7 @@ export interface InvestigationResponse {
   evidence: string[];
   recommendations: string[];
   tool_calls: ToolCallRecord[];
+  pending_approval?: ApprovalResponse | null;
   created_at: string;
   completed_at: string | null;
 }
